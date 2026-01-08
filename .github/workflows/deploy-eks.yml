@@ -54,8 +54,24 @@ jobs:
         run: |
           kubectl create deployment catalogeks-deployment \
             --image=339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
-          kubectl expose deployment catalogeks-deployment --port= --type=LoadBalancer
 
-      - name: Restart deployment
+      - name: Check if service exists
+        id: check_service
+        run: |
+          if kubectl get service catalogeks-deployment &> /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create LoadBalancer service (one-time)
+        if: steps.check_service.outputs.exists == 'false'
+        run: |
+          kubectl expose deployment catalogeks-deployment --port=9001 --type=LoadBalancer
+
+      - name: Update deployment image
         if: steps.check_deployment.outputs.exists == 'true'
-        run: kubectl rollout restart deployment catalogeks-deployment
+        run: |
+          kubectl set image deployment/catalogeks-deployment \
+            catalogeks=339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+          kubectl rollout status deployment/catalogeks-deployment
