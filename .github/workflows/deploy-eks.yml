@@ -20,18 +20,42 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: eu-west-1
 
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Sync image from GHCR → ECR
         run: |
-          docker pull ghcr.io/comp09034-25/catalog-service-Sravankumar3:latest
-          docker tag ghcr.io/comp09034-25/catalog-service-Sravankumar3:latest \
+          docker pull ghcr.io/comp09034-25/catalog-service-sravankumar3:latest
+          docker tag ghcr.io/comp09034-25/catalog-service-sravankumar3:latest \
             339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
           docker push 339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
 
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name EKS_CatalogService --region eu-west-1
 
+      - name: Check if deployment exists
+        id: check_deployment
+        run: |
+          if kubectl get deployment catalogeks-deployment &> /dev/null; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create deployment if it doesn't exist
+        if: steps.check_deployment.outputs.exists == 'false'
+        run: |
+          kubectl create deployment catalogeks-deployment \
+            --image=339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+          kubectl expose deployment catalogeks-deployment --port=8080 --type=LoadBalancer
+
       - name: Restart deployment
+        if: steps.check_deployment.outputs.exists == 'true'
         run: kubectl rollout restart deployment catalogeks-deployment
