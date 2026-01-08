@@ -1,21 +1,21 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: catalog-service-deployment
+  name: catalogeks-deployment
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: catalog-service
+      app: catalogeks
   template:
     metadata:
       labels:
-        app: catalog-service
+        app: catalogeks
     spec:
       containers:
-      - name: catalog-service
-        image: catalog-service:1.0
-        imagePullPolicy: Never
+      - name: catalogeks
+        image: 339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 9001
         readinessProbe:
@@ -25,4 +25,4 @@ spec:
           initialDelaySeconds: 20
           periodSeconds: 5
           timeoutSeconds: 2
-          failureThreshold: 3   
+          failureThreshold: 3

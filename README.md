@@ -4,6 +4,9 @@
 
 # Lab: **Extending CI/CD — Package Stage**
 
+Auto deploy test
+
+
 ## Lab Objectives
 
 In this lab you'll:
