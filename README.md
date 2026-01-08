@@ -440,3 +440,4 @@ Any image in your registry has passed all tests and security scans — it's read
 The next step is to learn how to automatically deploy your containerized application to Kubernetes using GitOps principles.
 
 ---
+trigger
