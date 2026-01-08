@@ -1,0 +1,37 @@
+name: Deploy to EKS
+
+on:
+  workflow_run:
+    workflows: ["Commit Stage"]
+    types: [completed]
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: eu-west-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Pull GHCR image and push to ECR
+        run: |
+          docker pull ghcr.io/comp09034-25/catalog-service-Sravankumar3:latest
+          docker tag ghcr.io/comp09034-25/catalog-service-Sravankumar3:latest \
+            339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+          docker push 339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+
+      - name: Update kubeconfig
+        run: aws eks update-kubeconfig --name EKS_CatalogService --region eu-west-1
+
+      - name: Deploy to EKS
+        run: kubectl rollout restart deployment catalogeks-deployment
