@@ -11,7 +11,7 @@ public class HomeController {
 
     @GetMapping("/")
     public String getGreeting() {
-        return "Welcome to the Cloud Native Book Catalog! I am Auto Deployed Application and I am accessable";
+        return "Welcome to the Cloud Native Book Catalog! I am Auto Deployed Application and I am accessable in web browser";
     }
 
     @GetMapping("/greeting/{name}")
