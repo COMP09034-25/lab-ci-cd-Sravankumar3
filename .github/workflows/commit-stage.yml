@@ -36,6 +36,7 @@ jobs:
 
   dependency-submission:
     runs-on: ubuntu-latest
+    continue-on-error: true  # ← ADDED: Allows this job to fail without blocking pipeline
     permissions:
       contents: write
 
