@@ -40,47 +40,32 @@ jobs:
       - name: Update kubeconfig
         run: aws eks update-kubeconfig --name EKS_CatalogService --region eu-west-1
 
-      - name: Check if deployment exists
-        id: check_deployment
+      - name: Create deployment if missing
         run: |
-          if kubectl get deployment catalogeks-deployment &> /dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
+          kubectl apply -f deployment.yaml
 
-      - name: Create deployment if it doesn't exist
-        if: steps.check_deployment.outputs.exists == 'false'
+      - name: Create LoadBalancer service if missing
         run: |
-          kubectl create deployment catalogeks-deployment \
-            --image=339712837349.dkr.ecr.eu-west-1.amazonaws.com/catalogeks:latest
+          kubectl apply -f - <<EOF
+          apiVersion: v1
+          kind: Service
+          metadata:
+            name: catalogeks-service
+          spec:
+            type: LoadBalancer
+            selector:
+              app: catalogeks
+            ports:
+            - port: 9001
+              targetPort: 9001
+          EOF
 
-      - name: Check if service exists
-        id: check_service
+      - name: Restart deployment to pull latest image
         run: |
-          if kubectl get service catalogeks-deployment &> /dev/null; then
-            echo "exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "exists=false" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Create LoadBalancer service (one-time)
-        if: steps.check_service.outputs.exists == 'false'
-        run: |
-          kubectl expose deployment catalogeks-deployment --port=9001 --type=LoadBalancer
-
-      - name: Update deployment image
-        if: steps.check_deployment.outputs.exists == 'true'
-        run: |
-          # Restart deployment to pull latest image
           kubectl rollout restart deployment/catalogeks-deployment
-          
-          # Wait for rollout to complete (15 minute timeout)
           kubectl rollout status deployment/catalogeks-deployment --timeout=15m
 
-      - name: Get LoadBalancer URL
+      - name: Show app URL
         run: |
-          echo "Waiting for LoadBalancer to be ready..."
-          sleep 30
-          kubectl get service catalogeks-deployment
-          echo "Access your application at the EXTERNAL-IP address shown above on port 9001"
+          echo "Your app is available at:"
+          kubectl get svc catalogeks-service
